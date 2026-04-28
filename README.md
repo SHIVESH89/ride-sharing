@@ -43,9 +43,5 @@ The system operates on a highly relational SQLite schema. Key tables include:
 * **Surge_Zone / Time_Slot:** Core tables dictating the dynamic pricing algorithm based on pickup location base fares and current time multipliers.
 * **Vehicle / Payment / Rating:** Supplementary tables for fleet management, transaction tracking, and driver feedback.
 
-## **Local Setup & Installation**
-1. Clone the repository to your local machine.
-2. Ensure you have Node.js installed.
-3. Install the required backend dependencies (specifically `sql.js`):
    ```bash
    npm install sql.js
