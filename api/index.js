@@ -1,81 +1,76 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { initDB } = require('./database/db');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
-// SSE (NOTE: may not fully work on Vercel)
-let sseClients = [];
+// Routes (IMPORTANT: use ../ because file is inside /api)
+app.use('/api/auth', require('../routes/auth'));
+app.use('/api/users', require('../routes/users'));
+app.use('/api/drivers', require('../routes/drivers'));
+app.use('/api/passengers', require('../routes/passengers'));
+app.use('/api/rides', require('../routes/rides'));
+app.use('/api/pricing', require('../routes/pricing'));
+app.use('/api/payments', require('../routes/payments'));
+app.use('/api/simulate', require('../routes/simulation'));
+app.use('/api/schema', require('../routes/schema'));
 
-app.get('/api/events', (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
-    sseClients.push(res);
-
-    req.on('close', () => {
-        sseClients = sseClients.filter(c => c !== res);
-    });
+// Example test route (optional but useful)
+app.get('/api/test', (req, res) => {
+    res.json({ message: "API is working" });
 });
 
-function broadcast(event, data) {
-    sseClients.forEach(client => {
-        client.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-    });
-}
-
-app.set('broadcast', broadcast);
-
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/drivers', require('./routes/drivers'));
-app.use('/api/passengers', require('./routes/passengers'));
-app.use('/api/rides', require('./routes/rides'));
-app.use('/api/pricing', require('./routes/pricing'));
-app.use('/api/payments', require('./routes/payments'));
-app.use('/api/simulate', require('./routes/simulation'));
-app.use('/api/schema', require('./routes/schema'));
-
-// Stats
-app.get('/api/stats', (req, res) => {
-    const { getSQL } = require('./database/db');
+// Stats route (UPDATED for PostgreSQL)
+app.get('/api/stats', async (req, res) => {
     try {
-        const totalUsers = getSQL('SELECT COUNT(*) as count FROM User').count;
-        const totalPassengers = getSQL('SELECT COUNT(*) as count FROM Passenger').count;
-        const totalDrivers = getSQL('SELECT COUNT(*) as count FROM Driver').count;
-        const activeRides = getSQL("SELECT COUNT(*) as count FROM Ride WHERE ride_status IN ('Pending','Ongoing')").count;
-        const completedRides = getSQL("SELECT COUNT(*) as count FROM Ride WHERE ride_status = 'Completed'").count;
-        const totalRevenue = getSQL('SELECT COALESCE(SUM(amount),0) as total FROM Payment').total;
-        const availableDrivers = getSQL("SELECT COUNT(*) as count FROM Driver WHERE status = 'Available'").count;
+        const { getSQL } = require('../database/db');
+
+        const totalUsers = await getSQL('SELECT COUNT(*) as count FROM "User"');
+        const totalPassengers = await getSQL('SELECT COUNT(*) as count FROM "Passenger"');
+        const totalDrivers = await getSQL('SELECT COUNT(*) as count FROM "Driver"');
+
+        const activeRides = await getSQL(
+            `SELECT COUNT(*) as count FROM "Ride" WHERE ride_status IN ('Pending','Ongoing')`
+        );
+
+        const completedRides = await getSQL(
+            `SELECT COUNT(*) as count FROM "Ride" WHERE ride_status = 'Completed'`
+        );
+
+        const totalRevenue = await getSQL(
+            `SELECT COALESCE(SUM(amount),0) as total FROM "Payment"`
+        );
+
+        const availableDrivers = await getSQL(
+            `SELECT COUNT(*) as count FROM "Driver" WHERE status = 'Available'`
+        );
 
         res.json({
-            totalUsers,
-            totalPassengers,
-            totalDrivers,
-            activeRides,
-            completedRides,
-            totalRevenue,
-            availableDrivers
+            totalUsers: totalUsers.count,
+            totalPassengers: totalPassengers.count,
+            totalDrivers: totalDrivers.count,
+            activeRides: activeRides.count,
+            completedRides: completedRides.count,
+            totalRevenue: totalRevenue.total,
+            availableDrivers: availableDrivers.count
         });
+
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// IMPORTANT: initialize DB once
-let isInitialized = false;
-
+// 🚀 Vercel serverless handler
 module.exports = async (req, res) => {
-    if (!isInitialized) {
-        await initDB();
-        isInitialized = true;
+    try {
+        return app(req, res);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
     }
-    return app(req, res);
 };
