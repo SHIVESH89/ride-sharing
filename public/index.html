@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ride Sharing System with Dynamic Pricing - A comprehensive ride management platform.">
+    <title>RideShare — Dynamic Pricing System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+    <!-- ===== AUTH SCREEN ===== -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <h1>Ride<span>Share</span></h1>
+            </div>
+            <div class="auth-card">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="authTabLogin" onclick="AuthUI.switchTab('login')">Sign In</button>
+                    <button class="auth-tab" id="authTabRegister" onclick="AuthUI.switchTab('register')">Register</button>
+                </div>
+                <!-- LOGIN FORM -->
+                <form class="auth-form" id="loginForm" onsubmit="AuthUI.login(event)">
+                    <div class="form-group"><label for="loginName">Full Name</label>
+                        <input type="text" id="loginName" placeholder="Enter your name" required></div>
+                    <div class="form-group"><label for="loginPhone">Phone Number</label>
+                        <input type="text" id="loginPhone" placeholder="9876543210 or admin123" required></div>
+                    <div class="auth-error" id="loginError"></div>
+                    <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+                </form>
+                <!-- REGISTER FORM -->
+                <form class="auth-form" id="registerForm" style="display:none" onsubmit="AuthUI.register(event)">
+                    <div class="form-group"><label>I am a</label>
+                        <div class="role-toggle">
+                            <button type="button" class="role-btn active" onclick="AuthUI.setRole('passenger')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Passenger</button>
+                            <button type="button" class="role-btn" onclick="AuthUI.setRole('driver')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="display:inline;vertical-align:middle;margin-right:4px"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Driver</button>
+                        </div>
+                    </div>
+                    <div class="form-group"><label for="regName">Full Name</label>
+                        <input type="text" id="regName" placeholder="Enter your name" required></div>
+                    <div class="form-group"><label for="regPhone">Phone Number</label>
+                        <input type="tel" id="regPhone" placeholder="9876543210" required></div>
+                    <div class="driver-fields" id="driverFields">
+                        <div class="form-group"><label for="regLicense">License Number</label>
+                            <input type="text" id="regLicense" placeholder="DL-XXXXXXX"></div>
+                        <div class="form-group"><label for="regVehicle">Vehicle Type</label>
+                            <select id="regVehicle"><option value="Sedan">Sedan</option><option value="SUV">SUV</option><option value="Hatchback">Hatchback</option><option value="Auto">Auto</option></select></div>
+                        <div class="form-group"><label for="regRegNo">Registration Number</label>
+                            <input type="text" id="regRegNo" placeholder="TN09XX1234"></div>
+                    </div>
+                    <div class="auth-error" id="registerError"></div>
+                    <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== APP SHELL (hidden until login) ===== -->
+    <div id="appShell" style="display:none">
+        <header class="app-header" id="appHeader">
+            <div class="header-brand">
+                <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+                <h1 class="logo-text">Ride<span class="logo-accent">Share</span></h1>
+            </div>
+            <div class="header-actions">
+                <div class="header-status"><span class="status-dot"></span><span id="connectionStatus">Connected</span></div>
+                <button class="btn-logout" id="btnProfile" onclick="ProfileModal.open()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:middle;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
+                <button class="btn-logout" id="btnLogout" onclick="AuthUI.logout()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:middle;margin-right:4px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</button>
+            </div>
+        </header>
+        <div class="toast-container" id="toastContainer"></div>
+
+        <!-- ===== PASSENGER DASHBOARD ===== -->
+        <main class="panel" id="panelPassenger">
+            <div class="greeting-bar"><div class="greeting-text" id="passengerGreeting">Hello!</div>
+                <div class="greeting-sub">Where would you like to go today?</div></div>
+            <div class="panel-grid" style="margin-top:1rem">
+                <!-- MAP -->
+                <section class="card"><div class="card-header"><h2>City Map</h2><span class="card-badge">Live</span></div>
+                    <div class="map-container" id="passengerMap"></div></section>
+                <!-- BOOK RIDE -->
+                <section class="card" id="bookRideSection">
+                    <div class="card-header"><h2>Book a Ride</h2></div>
+                    <form id="formBookRide" class="form-grid" autocomplete="off">
+                        <div class="form-group"><label for="bookPickup">Pickup Location</label>
+                            <select id="bookPickup" required><option value="">Loading...</option></select></div>
+                        <div class="form-group"><label for="bookDrop">Drop Location</label>
+                            <select id="bookDrop" required><option value="">Loading...</option></select></div>
+                        <div class="form-group"><label for="bookVehicleFilter">Vehicle Type</label>
+                            <select id="bookVehicleFilter"><option value="ANY">Any Vehicle</option><option value="Sedan">Sedan</option><option value="SUV">SUV</option><option value="Hatchback">Hatchback</option><option value="Auto">Auto</option></select></div>
+                        <div class="form-group"><label for="bookMinRating">Min Driver Rating</label>
+                            <select id="bookMinRating"><option value="3.0">3.0+</option><option value="3.5">3.5+</option><option value="4.0">4.0+</option><option value="4.5">4.5+</option></select></div>
+                        <div class="form-group"><label>
+                            <input type="checkbox" id="bookPool" style="margin-right:6px;vertical-align:middle">Carpool (share ride)</label></div>
+                        <div class="form-group"><label for="bookMaxSeats">Max Seats (if pool)</label>
+                            <select id="bookMaxSeats"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option></select></div>
+                        <div class="fare-preview" id="farePreview">
+                            <div class="fare-label">Estimated Fare</div>
+                            <div class="fare-amount" id="fareAmount">-- </div>
+                            <div class="fare-formula" id="fareFormula">Select pickup location</div>
+                        </div>
+                        <div class="btn-group" style="grid-column:1/-1">
+                            <button type="button" class="btn btn-primary" style="flex:1" onclick="Passenger.bookNow()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Book Now</button>
+                            <button type="button" class="btn btn-accent" style="flex:1" onclick="Passenger.showBookLater()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Book Later</button>
+                        </div>
+                        <div id="bookLaterSection" style="display:none;grid-column:1/-1">
+                            <div class="form-group"><label for="bookTimeslot">Select Time Slot</label>
+                                <select id="bookTimeslot"><option value="">Loading...</option></select></div>
+                            <button type="button" class="btn btn-accent btn-full" style="margin-top:0.5rem" onclick="Passenger.bookLater()">Confirm Scheduled Ride</button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- ACTIVE RIDES -->
+                <section class="card card-wide" id="activeRideSection" style="display:none">
+                    <div class="card-header"><h2>Active Rides</h2></div>
+                    <div id="activeRideContent"></div>
+                </section>
+                <!-- POOL RIDES -->
+                <section class="card card-wide" id="carpoolSection">
+                    <div class="card-header"><h2>Available Pool Rides</h2>
+                        <button class="btn btn-sm btn-outline" onclick="Passenger.loadShareableRides()">Refresh</button></div>
+                    <div class="table-wrap"><table class="data-table" id="shareableRidesTable"><thead>
+                        <tr><th>Ride</th><th>Pickup</th><th>Drop</th><th>Fare/Person</th><th>Seats Left</th><th>Action</th></tr>
+                    </thead><tbody id="shareableRidesBody"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody></table></div>
+                </section>
+                <!-- MY RIDES -->
+                <section class="card card-wide" id="myRidesSection">
+                    <div class="card-header"><h2>My Rides</h2></div>
+                    <div class="table-wrap"><table class="data-table"><thead>
+                        <tr><th>ID</th><th>Pickup</th><th>Drop</th><th>Fare</th><th>Status</th><th>Driver</th><th>Action</th></tr>
+                    </thead><tbody id="myRidesBody"><tr><td colspan="7" class="empty-state">Loading...</td></tr></tbody></table></div>
+                </section>
+            </div>
+        </main>
+
+        <!-- ===== DRIVER DASHBOARD ===== -->
+        <main class="panel" id="panelDriver">
+            <div class="greeting-bar"><div class="greeting-text" id="driverGreeting">Hello!</div>
+                <div class="greeting-sub">Manage your rides and availability</div></div>
+            <div class="panel-grid" style="margin-top:1rem">
+                <!-- MAP -->
+                <section class="card"><div class="card-header"><h2>City Map</h2><span class="card-badge">Live</span></div>
+                    <div class="map-container" id="driverMap"></div></section>
+                <!-- DRIVER STATUS -->
+                <section class="card" id="driverStatusSection">
+                    <div class="card-header"><h2>My Status</h2></div>
+                    <div class="driver-info-card" id="driverInfoCard">
+                        <div class="driver-meta">
+                            <div class="driver-avatar" id="driverAvatar">?</div>
+                            <div><h3 id="driverInfoName">--</h3><p id="driverInfoVehicle">--</p></div>
+                        </div>
+                        <div class="driver-stats-row">
+                            <div class="mini-stat"><span class="mini-stat-val" id="driverInfoRating">--</span><span class="mini-stat-label">Rating</span></div>
+                            <div class="mini-stat"><span class="mini-stat-val" id="driverInfoStatus">--</span><span class="mini-stat-label">Status</span></div>
+                            <div class="mini-stat"><span class="mini-stat-val" id="driverInfoLicense">--</span><span class="mini-stat-label">License</span></div>
+                        </div>
+                        <div class="btn-row">
+                            <button class="btn btn-success btn-sm" onclick="Driver.setStatus('Available')">Available</button>
+                            <button class="btn btn-warning btn-sm" onclick="Driver.setStatus('Busy')">Busy</button>
+                            <button class="btn btn-outline btn-sm" onclick="Driver.setStatus('Offline')">Offline</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PENDING RIDES -->
+                <section class="card card-wide" id="pendingRidesSection">
+                    <div class="card-header"><h2>Available Rides</h2>
+                        <button class="btn btn-sm btn-outline" onclick="Driver.loadPendingRides()">Refresh</button></div>
+                    <div class="table-wrap"><table class="data-table"><thead>
+                        <tr><th>Ride</th><th>Pickup</th><th>Drop</th><th>Fare</th><th>Type</th><th>Min Rating</th><th>Vehicle</th><th>Action</th></tr>
+                    </thead><tbody id="pendingRidesBody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody></table></div>
+                </section>
+                <!-- MY RIDES -->
+                <section class="card card-wide" id="driverRidesSection">
+                    <div class="card-header"><h2>My Ride History</h2></div>
+                    <div class="table-wrap"><table class="data-table"><thead>
+                        <tr><th>ID</th><th>Pickup</th><th>Drop</th><th>Passenger</th><th>Fare</th><th>Status</th><th>Action</th></tr>
+                    </thead><tbody id="driverRidesBody"><tr><td colspan="7" class="empty-state">Loading...</td></tr></tbody></table></div>
+                </section>
+            </div>
+        </main>
+
+        <!-- ===== ADMIN DASHBOARD ===== -->
+        <main class="panel" id="panelAdmin">
+            <div class="greeting-bar"><div class="greeting-text" id="adminGreeting">Hello, Admin!</div>
+                <div class="greeting-sub">System overview and management</div></div>
+            <div class="panel-grid" style="margin-top:1rem">
+                <!-- STATS -->
+                <section class="stats-row card-wide" id="statsRow">
+                    <div class="stat-card stat-purple"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="stat-data"><span class="stat-val" id="statUsers">0</span><span class="stat-label">Total Users</span></div></div>
+                    <div class="stat-card stat-cyan"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div><div class="stat-data"><span class="stat-val" id="statDrivers">0</span><span class="stat-label">Drivers</span></div></div>
+                    <div class="stat-card stat-amber"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><div class="stat-data"><span class="stat-val" id="statActiveRides">0</span><span class="stat-label">Active Rides</span></div></div>
+                    <div class="stat-card stat-emerald"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><circle cx="16" cy="16" r="6"/></svg></div><div class="stat-data"><span class="stat-val" id="statRevenue">0</span><span class="stat-label">Revenue</span></div></div>
+                </section>
+                <!-- MAP -->
+                <section class="card card-wide"><div class="card-header"><h2>City Map</h2></div>
+                    <div class="map-container" id="adminMap"></div></section>
+                <!-- DB VISUALIZATION -->
+                <section class="card card-wide" id="dbVisSection">
+                    <div class="card-header"><h2>Database Schema</h2>
+                        <button class="btn btn-sm btn-primary" onclick="Admin.openSchemaModal()">View Full Schema</button></div>
+                    <p style="color:var(--text-muted);font-size:0.85rem">Click "View Full Schema" to see the interactive ER diagram with table data.</p>
+                </section>
+                <!-- ZONES -->
+                <section class="card" id="zoneSection">
+                    <div class="card-header"><h2>Surge Zones</h2></div>
+                    <form id="formAddZone" class="form-inline" autocomplete="off">
+                        <input type="text" id="addZoneName" placeholder="Zone name" required>
+                        <input type="number" id="addZoneFare" placeholder="Base fare" step="0.01" required>
+                        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                    </form>
+                    <div class="table-wrap"><table class="data-table"><thead><tr><th>ID</th><th>Zone</th><th>Base Fare</th><th>Action</th></tr></thead>
+                    <tbody id="zonesBody"><tr><td colspan="4" class="empty-state">Loading...</td></tr></tbody></table></div>
+                </section>
+                <!-- TIMESLOTS -->
+                <section class="card" id="timeslotSection">
+                    <div class="card-header"><h2>Time Slots (24h)</h2></div>
+                    <form id="formAddTimeslot" class="form-inline" autocomplete="off">
+                        <input type="time" id="addTsStart" required>
+                        <input type="time" id="addTsEnd" required>
+                        <input type="number" id="addTsMultiplier" placeholder="Multiplier" step="0.1" required>
+                        <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                    </form>
+                    <div class="table-wrap"><table class="data-table"><thead><tr><th>ID</th><th>Start</th><th>End</th><th>Multiplier</th><th>Action</th></tr></thead>
+                    <tbody id="timeslotsBody"><tr><td colspan="5" class="empty-state">Loading...</td></tr></tbody></table></div>
+                </section>
+                <!-- USERS -->
+                <section class="card card-wide"><div class="card-header"><h2>All Users</h2><button class="btn btn-sm btn-outline" onclick="Admin.loadUsers()">Refresh</button></div>
+                    <div class="table-wrap"><table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Trust</th><th>Role</th><th>Action</th></tr></thead>
+                    <tbody id="allUsersBody"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody></table></div></section>
+                <!-- RIDES -->
+                <section class="card card-wide"><div class="card-header"><h2>All Rides</h2><button class="btn btn-sm btn-outline" onclick="Admin.loadAllRides()">Refresh</button></div>
+                    <div class="table-wrap"><table class="data-table"><thead><tr><th>ID</th><th>Pickup</th><th>Drop</th><th>Passenger</th><th>Driver</th><th>Fare</th><th>Type</th><th>Status</th></tr></thead>
+                    <tbody id="allRidesBody"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody></table></div></section>
+                <!-- PAYMENTS -->
+                <section class="card card-wide"><div class="card-header"><h2>All Payments</h2></div>
+                    <div class="table-wrap"><table class="data-table"><thead><tr><th>ID</th><th>Ride</th><th>Passenger</th><th>Amount</th><th>Mode</th></tr></thead>
+                    <tbody id="allPaymentsBody"><tr><td colspan="5" class="empty-state">Loading...</td></tr></tbody></table></div></section>
+            </div>
+        </main>
+
+        <!-- PROFILE MODAL -->
+        <div class="modal-overlay hidden" id="profileModal">
+            <div class="modal-card" style="width:440px">
+                <h3>Edit Profile</h3>
+                <div class="profile-avatar-large" id="profileModalAvatar" style="margin:1rem auto">?</div>
+                <form id="formProfileModal" class="auth-form" onsubmit="ProfileModal.save(event)">
+                    <div class="form-group"><label for="profileModalName">Name</label><input type="text" id="profileModalName" required></div>
+                    <div class="form-group"><label for="profileModalPhone">Phone</label><input type="tel" id="profileModalPhone" required></div>
+                    <div id="profileDriverFields" style="display:none">
+                        <div class="form-group" style="margin-top:0.85rem"><label for="profileModalLicense">License</label><input type="text" id="profileModalLicense"></div>
+                        <div class="form-group" style="margin-top:0.85rem"><label for="profileModalVehicle">Vehicle Type</label>
+                            <select id="profileModalVehicle"><option value="Sedan">Sedan</option><option value="SUV">SUV</option><option value="Hatchback">Hatchback</option><option value="Auto">Auto</option></select></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" style="margin-top:1rem">Save Changes</button>
+                    <button type="button" class="btn btn-outline btn-full" style="margin-top:0.5rem" onclick="ProfileModal.close()">Cancel</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- SCHEMA MODAL -->
+        <div class="modal-overlay hidden" id="schemaModal">
+            <div class="schema-modal-content">
+                <div class="schema-modal-header">
+                    <h2>Database Schema — ER Diagram</h2>
+                    <button class="btn btn-outline btn-sm" onclick="Admin.closeSchemaModal()">Close</button>
+                </div>
+                <div class="db-vis" id="dbVisSvg" style="overflow:auto;max-height:calc(100vh - 160px)"></div>
+                <div id="dbTableData" style="margin-top:1rem;max-height:300px;overflow:auto"></div>
+            </div>
+        </div>
+
+        <!-- RATING MODAL -->
+        <div class="modal-overlay hidden" id="ratingModal">
+            <div class="modal-card">
+                <h3>Rate Your Driver</h3>
+                <p id="ratingDriverName" style="color:var(--text-muted);font-size:0.85rem">Driver Name</p>
+                <div class="star-rating" id="starRating"></div>
+                <input type="hidden" id="ratingRideId"><input type="hidden" id="ratingDriverId">
+                <button class="btn btn-primary btn-full" onclick="Passenger.submitRating()">Submit Rating</button>
+                <button class="btn btn-outline btn-full" style="margin-top:0.5rem" onclick="document.getElementById('ratingModal').classList.add('hidden')">Skip</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/map.js"></script>
+    <script src="/js/passenger.js"></script>
+    <script src="/js/driver.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>
