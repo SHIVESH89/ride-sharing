@@ -1,7 +1,7 @@
 # **RideShare — Dynamic Pricing & Ride Management System**
 
 ## **Description**
-RideShare is a comprehensive, full-stack ride management platform built to simulate real-world ride-hailing economics. It features a robust dynamic surge pricing engine, interactive map routing, carpooling logic, and role-based access control. The application provides dedicated, real-time dashboards for Passengers, Drivers, and Administrators, all backed by a lightweight, embedded SQLite database. This system effectively demonstrates complex relational data management, real-time status updates, and dynamic fare calculation based on location zones and time slots.
+RideShare is a comprehensive, full-stack ride management platform built to simulate real-world ride-hailing economics. It features a robust dynamic surge pricing engine, interactive map routing, carpooling logic, and role-based access control. The application provides dedicated, real-time dashboards for Passengers, Drivers, and Administrators, all backed by a robust **MySQL database** and an **Express.js API**. This system effectively demonstrates complex relational data management, asynchronous API routing, real-time status updates, and dynamic fare calculation based on location zones and time slots.
 
 ## **Key Features**
 * **Dynamic Surge Pricing:** Fares are calculated in real-time using a combination of base zone rates and time-based surge multipliers.
@@ -19,27 +19,22 @@ RideShare is a comprehensive, full-stack ride management platform built to simul
 ## **Technology Stack**
 * **Frontend:** HTML5, CSS3 (Custom responsive styling, CSS Grid/Flexbox), Vanilla JavaScript.
 * **Map Integration:** Leaflet.js with OpenStreetMap tiles.
-* **Backend / Database Management:** Node.js environment utilizing `sql.js` for an embedded SQLite database.
-* **Data Persistence:** File-based SQLite database.
+* **Backend API:** Node.js with Express.js for RESTful routing and API endpoints.
+* **Database Management:** MySQL utilizing the `mysql2/promise` driver for asynchronous database connection pooling.
+* **Data Persistence:** MySQL Relational Database Management System.
 
 ## **Project Structure & Files**
-* **`index.html`**: The main application shell containing all modal overlays, authentication screens, and role-specific dashboard layouts.
-* **`style.css`**: The custom theme definitions, animations, map styling, and responsive media queries.
-* **`app.js`**: Core application controller handling API requests, authentication state, Server-Sent Events (SSE) for live updates, and global UI elements (toasts, modals).
-* **`map.js`**: Leaflet map configurations, custom zone markers, coordinate mapping, and route drawing logic.
-* **`passenger.js`**: Passenger-specific logic including fare calculation, ride booking, pool joining, and active ride tracking.
-* **`driver.js`**: Driver-specific logic for managing availability status, filtering pending rides, and completing trips.
-* **`admin.js`**: Administrator dashboard logic for system statistics, user management, pricing adjustments, and rendering the SVG-based database ER diagram.
-* **`db.js`**: The backend database interface using `sql.js`, handling file read/write operations and transaction management.
-* **`schema.sql`**: The structural blueprint of the SQLite database, defining tables, foreign key relationships, constraints, and initial seed data.
-* **`ridesharing.db`**: The binary SQLite database file storing persistent application data.
+* **`public/index.html`**: The main application shell containing all modal overlays, authentication screens, and role-specific dashboard layouts.
+* **`public/style.css`**: The custom theme definitions, animations, map styling, and responsive media queries.
+* **`public/app.js`**: Core frontend controller handling API requests, authentication state, Server-Sent Events (SSE) for live updates, and global UI elements (toasts, modals).
+* **`api/index.js`**: The main Express server entry point that initializes the database and starts the API server.
+* **`routes/`**: Directory containing all modular Express API route handlers (e.g., `passengers.js`, `drivers.js`, `rides.js`).
+* **`database/db.js`**: The backend database interface using `mysql2/promise`, handling connection pooling, async queries, and transaction management.
+* **`database/schema.sql`**: The structural blueprint of the MySQL database, defining tables, foreign key relationships, constraints, and initial seed data.
 
 ## **Database Schema & Management**
-The system operates on a highly relational SQLite schema. Key tables include:
+The system operates on a highly relational **MySQL** schema. Key tables include:
 * **User / Passenger / Driver:** Inheritance-style relationship managing user roles, credentials, and trust scores.
 * **Ride / Ride_Passenger:** Manages individual trips and junction data for carpool fare splitting.
 * **Surge_Zone / Time_Slot:** Core tables dictating the dynamic pricing algorithm based on pickup location base fares and current time multipliers.
 * **Vehicle / Payment / Rating:** Supplementary tables for fleet management, transaction tracking, and driver feedback.
-
-   ```bash
-   npm install sql.js
