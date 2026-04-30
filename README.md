@@ -1,7 +1,5 @@
 # **RideShare — Dynamic Pricing & Ride Management System**
 
-**Live Demo:** -> https://ride-sharing-tcuz.vercel.app/
-
 ## **Description**
 RideShare is a comprehensive, full-stack ride management platform built to simulate real-world ride-hailing economics. It features a robust dynamic surge pricing engine, interactive map routing, carpooling logic, and role-based access control. The application provides dedicated, real-time dashboards for Passengers, Drivers, and Administrators, all backed by a lightweight, embedded SQLite database. This system effectively demonstrates complex relational data management, real-time status updates, and dynamic fare calculation based on location zones and time slots.
 
